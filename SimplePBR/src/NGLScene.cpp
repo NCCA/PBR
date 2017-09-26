@@ -3,14 +3,13 @@
 #include <QMouseEvent>
 
 #include <ngl/Camera.h>
-#include <ngl/Light.h>
-#include <ngl/Material.h>
 #include <ngl/NGLInit.h>
 #include <ngl/NGLStream.h>
+#include <ngl/Random.h>
 #include <ngl/ShaderLib.h>
 #include <ngl/VAOPrimitives.h>
 
-
+// This demo is based on code from here https://learnopengl.com/#!PBR/Lighting
 NGLScene::NGLScene()
 {
   setTitle( "PBR with GLSL" );
@@ -163,34 +162,42 @@ void NGLScene::paintGL()
 
   // get the VBO instance and draw the built in teapot
   ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
-//  shader->setUniform("metalic",0.5f);
-//  shader->setUniform("roughness",0.5f);
-//  shader->setUniform("model",m_mouseGlobalTX);
-//  prim->draw("teapot");
 
   // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
   int nrRows    = 7;
   int nrColumns = 7;
-  float spacing = 2.5;
+  float spacing = 2.0;
 
-
-
-
+  shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
+  shader->setUniform("ao",1.0f);
+  ngl::Random *rng=ngl::Random::instance();
+  rng->setSeed(10);
   for (int row = 0; row < nrRows; ++row)
   {
       shader->setUniform("metallic", (float)row / (float)nrRows);
       for (int col = 0; col < nrColumns; ++col)
       {
-          // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
-          // on direct lighting.
-          shader->setUniform("roughness", std::min(std::max((float)col / (float)nrColumns, 0.05f), 1.0f));
-          m_transform.setPosition((float)(col - (nrColumns / 2)) * spacing,
-                                  0.0f,
-                                  (float)(row - (nrRows / 2)) * spacing);
-          loadMatricesToShader();
-          prim->draw("teapot");
+        // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
+        // on direct lighting.
+        shader->setUniform("roughness", std::min(std::max((float)col / (float)nrColumns, 0.05f), 1.0f));
+        m_transform.setPosition((float)(col - (nrColumns / 2)) * spacing,
+                                0.0f,
+                                (float)(row - (nrRows / 2)) * spacing);
+        m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
+
+        loadMatricesToShader();
+        prim->draw("teapot");
       }
   }
+  // draw floor
+  shader->setUniform("albedo",0.1f, 0.1f, 0.1f);
+  shader->setUniform("ao",1.0f);
+  shader->setUniform("roughness",0.02f);
+  m_transform.reset();
+  m_transform.setPosition(0.0f,-0.5f,0.0f);
+  loadMatricesToShader();
+  prim->draw("floor");
+
 
   // Draw Lights
 
@@ -206,11 +213,6 @@ void NGLScene::paintGL()
     shader->setUniform("MVP",MVP);
     prim->draw("sphere");
   }
-  shader->setUniform("Colour",0.5f,0.5f,0.5f,1.0f);
-  tx.setPosition(0.0f,-0.5f,0.0f);
-  MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
-  shader->setUniform("MVP",MVP);
-  prim->draw("floor");
 
 }
 

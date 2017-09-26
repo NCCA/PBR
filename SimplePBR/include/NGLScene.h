@@ -98,6 +98,7 @@ private:
   /// @param _event the Qt Event structure
   //----------------------------------------------------------------------------------------------------------------------
   void wheelEvent(QWheelEvent *_event) override;
+
 };
 
 
