@@ -47,10 +47,10 @@ void NGLScene::initializeGL()
   glClearColor( 0.4f, 0.4f, 0.4f, 1.0f ); // Grey Background
   // enable depth testing for drawing
   glEnable( GL_DEPTH_TEST );
-// enable multisampling for smoother drawing
-#ifndef USINGIOS_
+  // enable multisampling for smoother drawing
+  #ifndef USINGIOS_
   glEnable( GL_MULTISAMPLE );
-#endif
+  #endif
   // now to load the shader and set the values
   // grab an instance of shader manager
   ngl::ShaderLib* shader = ngl::ShaderLib::instance();
@@ -121,10 +121,11 @@ void NGLScene::initializeGL()
 
 
   ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
-  ngl::VAOPrimitives::instance()->createTrianglePlane("floor",20,20,10,10,ngl::Vec3::up());
+  ngl::VAOPrimitives::instance()->createTrianglePlane("floor",25,25,10,10,ngl::Vec3::up());
 
   // Load Textures
   // albedo
+  /*
   ngl::Texture t("textures/albedo.png");
   t.setMultiTexture(GL_TEXTURE0);
   m_textures["albedo"]=t.setTextureGL();
@@ -144,6 +145,41 @@ void NGLScene::initializeGL()
   t.loadImage("textures/ao.png");
   t.setMultiTexture(GL_TEXTURE4);
   m_textures["ao"]=t.setTextureGL();
+  */
+  // simple lambda to save repeating code for texture setup
+  auto setTextureParams=[]()
+  {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+  };
+  // albedo
+  ngl::Texture t("textures/greasy/albedo.png");
+  t.setMultiTexture(GL_TEXTURE0);
+  m_textures["albedo"]=t.setTextureGL();
+  setTextureParams();
+  // normal
+  t.loadImage("textures/greasy/normal.png");
+  t.setMultiTexture(GL_TEXTURE1);
+  m_textures["normal"]=t.setTextureGL();
+  setTextureParams();
+  // metalic
+  t.loadImage("textures/greasy/metallic.png");
+  t.setMultiTexture(GL_TEXTURE2);
+  m_textures["metallic"]=t.setTextureGL();
+  setTextureParams();
+  // roughness
+  t.loadImage("textures/greasy/roughness.png");
+  t.setMultiTexture(GL_TEXTURE3);
+  m_textures["roughness"]=t.setTextureGL();
+  setTextureParams();
+  //  ao
+  t.loadImage("textures/greasy/ao.png");
+  t.setMultiTexture(GL_TEXTURE4);
+  m_textures["ao"]=t.setTextureGL();
+  setTextureParams();
+
   ngl::Random::instance()->setSeed(m_seed);
 
 
@@ -204,8 +240,8 @@ void NGLScene::paintGL()
   ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
 
   // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
-  int nrRows    = 7;
-  int nrColumns = 7;
+  int nrRows    = 10;
+  int nrColumns = 10;
   float spacing = 2.0;
 
   ngl::Random *rng=ngl::Random::instance();
@@ -223,15 +259,15 @@ void NGLScene::paintGL()
   glBindTexture(GL_TEXTURE_2D, m_textures["ao"]);
   for (int row = 0; row < nrRows; ++row)
   {
-      shader->setUniform("metallic", (float)row / (float)nrRows);
+      shader->setUniform("metallic", static_cast<float>(row) / nrRows);
       for (int col = 0; col < nrColumns; ++col)
       {
         // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
         // on direct lighting.
-        shader->setUniform("roughnessScale", std::min(std::max((float)col / (float)nrColumns, 0.01f), 1.0f));
-        m_transform.setPosition((float)(col - (nrColumns / 2)) * spacing,
+        shader->setUniform("roughnessScale", std::min(std::max(static_cast<float>(col) / nrColumns, 0.01f), 1.0f));
+        m_transform.setPosition(static_cast<float>(col - (nrColumns / 2)) * spacing,
                                 0.0f,
-                                (float)(row - (nrRows / 2)) * spacing);
+                                static_cast<float>(row - (nrRows / 2)) * spacing);
         m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
 
         loadMatricesToShader();
@@ -247,20 +283,21 @@ void NGLScene::paintGL()
 
 
   // Draw Lights
-
-  ( *shader )[ ngl::nglColourShader ]->use();
-  ngl::Mat4 MVP;
-  ngl::Transformation tx;
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
-
-  for(size_t i=0; i<g_lightPositions.size(); ++i)
+  if(m_drawLights)
   {
-    tx.setPosition(g_lightPositions[i]);
-    MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
-    shader->setUniform("MVP",MVP);
-    prim->draw("sphere");
-  }
+    ( *shader )[ ngl::nglColourShader ]->use();
+    ngl::Mat4 MVP;
+    ngl::Transformation tx;
+    shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
+    for(size_t i=0; i<g_lightPositions.size(); ++i)
+    {
+      tx.setPosition(g_lightPositions[i]);
+      MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
+      shader->setUniform("MVP",MVP);
+      prim->draw("sphere");
+    }
+  }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -293,6 +330,9 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
     case Qt::Key_F:
       showFullScreen();
       break;
+    case Qt::Key_L :
+      m_drawLights^=true;
+    break;
     // show windowed
     case Qt::Key_N:
       showNormal();
