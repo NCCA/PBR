@@ -1,0 +1,161 @@
+{
+  "TexturePack": {
+  "material": "wood",
+  "Textures"  : [
+    {
+      "location": 0,
+      "name": "albedoMap",
+      "path" : "textures/wood/albedo.png"
+    },
+    {
+      "location": 1,
+      "name": "normalMap",
+      "path" : "textures/wood/normal.png"
+    },
+    {
+      "location": 2,
+      "name": "metallicMap",
+      "path" : "textures/wood/metallic.png"
+    },
+    {
+      "location": 3,
+      "name": "roughnessMap",
+      "path" : "textures/wood/roughness.png"
+    },
+    {
+      "location": 4,
+      "name": "aoMap",
+      "path" : "textures/wood/ao.png"
+    }
+    ]
+ },
+
+    "TexturePack": {
+    "material": "greasy",
+    "Textures"  : [
+      {
+        "location": 0,
+        "name": "albedoMap",
+        "path" : "textures/greasy/albedo.png"
+      },
+      {
+        "location": 1,
+        "name": "normalMap",
+        "path" : "textures/greasy/normal.png"
+      },
+      {
+        "location": 2,
+        "name": "metallicMap",
+        "path" : "textures/greasy/metallic.png"
+      },
+      {
+        "location": 3,
+        "name": "roughnessMap",
+        "path" : "textures/greasy/roughness.png"
+      },
+      {
+        "location": 4,
+        "name": "aoMap",
+        "path" : "textures/greasy/ao.png"
+      }
+      ]
+   },
+    "TexturePack": {
+    "material": "copper",
+    "Textures"  : [
+      {
+        "location": 0,
+        "name": "albedoMap",
+        "path" : "textures/copper/albedo.png"
+      },
+      {
+        "location": 1,
+        "name": "normalMap",
+        "path" : "textures/copper/normal.png"
+      },
+      {
+        "location": 2,
+        "name": "metallicMap",
+        "path" : "textures/copper/metallic.png"
+      },
+      {
+        "location": 3,
+        "name": "roughnessMap",
+        "path" : "textures/copper/roughness.png"
+      },
+      {
+        "location": 4,
+        "name": "aoMap",
+        "path" : "textures/copper/ao.png"
+      }
+      ]
+    },
+    "TexturePack": {
+    "material": "rusty",
+    "Textures"  : [
+      {
+        "location": 0,
+        "name": "albedoMap",
+        "path" : "textures/rusty/albedo.png"
+      },
+      {
+        "location": 1,
+        "name": "normalMap",
+        "path" : "textures/rusty/normal.png"
+      },
+      {
+        "location": 2,
+        "name": "metallicMap",
+        "path" : "textures/rusty/metallic.png"
+      },
+      {
+        "location": 3,
+        "name": "roughnessMap",
+        "path" : "textures/rusty/roughness.png"
+      },
+      {
+        "location": 4,
+        "name": "aoMap",
+        "path" : "textures/rusty/ao.png"
+      }
+      ]
+    },
+
+    "TexturePack": {
+    "material": "panel",
+    "Textures"  : [
+      {
+        "location": 0,
+        "name": "albedoMap",
+        "path" : "textures/panel/albedo.png"
+      },
+      {
+        "location": 1,
+        "name": "normalMap",
+        "path" : "textures/panel/normal.png"
+      },
+      {
+        "location": 2,
+        "name": "metallicMap",
+        "path" : "textures/panel/metallic.png"
+      },
+      {
+        "location": 3,
+        "name": "roughnessMap",
+        "path" : "textures/panel/roughness.png"
+      },
+      {
+        "location": 4,
+        "name": "aoMap",
+        "path" : "textures/panel/ao.png"
+      }
+      ]
+    }
+
+
+
+
+
+
+}
+

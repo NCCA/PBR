@@ -9,6 +9,7 @@
 #include <ngl/ShaderLib.h>
 #include <ngl/VAOPrimitives.h>
 #include <ngl/Texture.h>
+#include "TexturePack.h"
 
 // This demo is based on code from here https://learnopengl.com/#!PBR/Lighting
 NGLScene::NGLScene()
@@ -44,6 +45,10 @@ void NGLScene::initializeGL()
   // we must call that first before any other GL commands to load and link the
   // gl commands from the lib, if that is not done program will crash
   ngl::NGLInit::instance();
+  TexturePack tp;
+  tp.loadJSON("textures/textures.json");
+
+
   glClearColor( 0.4f, 0.4f, 0.4f, 1.0f ); // Grey Background
   // enable depth testing for drawing
   glEnable( GL_DEPTH_TEST );
@@ -122,66 +127,7 @@ void NGLScene::initializeGL()
 
   ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
   ngl::VAOPrimitives::instance()->createTrianglePlane("floor",25,25,10,10,ngl::Vec3::up());
-
-  // Load Textures
-  // albedo
-  /*
-  ngl::Texture t("textures/albedo.png");
-  t.setMultiTexture(GL_TEXTURE0);
-  m_textures["albedo"]=t.setTextureGL();
-  // normal
-  t.loadImage("textures/normal.png");
-  t.setMultiTexture(GL_TEXTURE1);
-  m_textures["normal"]=t.setTextureGL();
-  // metalic
-  t.loadImage("textures/metallic.png");
-  t.setMultiTexture(GL_TEXTURE2);
-  m_textures["metallic"]=t.setTextureGL();
-  // roughness
-  t.loadImage("textures/roughness.png");
-  t.setMultiTexture(GL_TEXTURE3);
-  m_textures["roughness"]=t.setTextureGL();
-  //  ao
-  t.loadImage("textures/ao.png");
-  t.setMultiTexture(GL_TEXTURE4);
-  m_textures["ao"]=t.setTextureGL();
-  */
-  // simple lambda to save repeating code for texture setup
-  auto setTextureParams=[]()
-  {
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-  };
-  // albedo
-  ngl::Texture t("textures/greasy/albedo.png");
-  t.setMultiTexture(GL_TEXTURE0);
-  m_textures["albedo"]=t.setTextureGL();
-  setTextureParams();
-  // normal
-  t.loadImage("textures/greasy/normal.png");
-  t.setMultiTexture(GL_TEXTURE1);
-  m_textures["normal"]=t.setTextureGL();
-  setTextureParams();
-  // metalic
-  t.loadImage("textures/greasy/metallic.png");
-  t.setMultiTexture(GL_TEXTURE2);
-  m_textures["metallic"]=t.setTextureGL();
-  setTextureParams();
-  // roughness
-  t.loadImage("textures/greasy/roughness.png");
-  t.setMultiTexture(GL_TEXTURE3);
-  m_textures["roughness"]=t.setTextureGL();
-  setTextureParams();
-  //  ao
-  t.loadImage("textures/greasy/ao.png");
-  t.setMultiTexture(GL_TEXTURE4);
-  m_textures["ao"]=t.setTextureGL();
-  setTextureParams();
-
   ngl::Random::instance()->setSeed(m_seed);
-
 
 
 }
@@ -246,22 +192,22 @@ void NGLScene::paintGL()
 
   ngl::Random *rng=ngl::Random::instance();
   ngl::Random::instance()->setSeed(m_seed);
-
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, m_textures["albedo"]);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, m_textures["normal"]);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, m_textures["metallic"]);
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, m_textures["roughness"]);
-  glActiveTexture(GL_TEXTURE4);
-  glBindTexture(GL_TEXTURE_2D, m_textures["ao"]);
+  TexturePack tp;
+  tp.activateTexturePack("copper");
+  static  std::string textures[]=
+  {
+    "copper",
+    "greasy",
+    "panel",
+    "rusty",
+    "wood"
+  };
   for (int row = 0; row < nrRows; ++row)
   {
-      shader->setUniform("metallic", static_cast<float>(row) / nrRows);
       for (int col = 0; col < nrColumns; ++col)
       {
+        shader->setUniform("metallic", static_cast<float>(row) / nrRows);
+        tp.activateTexturePack(textures[(int)rng->randomPositiveNumber(5)]);
         // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
         // on direct lighting.
         shader->setUniform("roughnessScale", std::min(std::max(static_cast<float>(col) / nrColumns, 0.01f), 1.0f));
@@ -275,6 +221,8 @@ void NGLScene::paintGL()
       }
   }
   // draw floor
+  tp.activateTexturePack("wood");
+
   shader->setUniform("roughnessScale",0.0f);
   m_transform.reset();
   m_transform.setPosition(0.0f,-0.5f,0.0f);
