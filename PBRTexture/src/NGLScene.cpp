@@ -15,6 +15,7 @@
 NGLScene::NGLScene()
 {
   setTitle( "PBR with GLSL" );
+  m_timer.start();
 }
 
 
@@ -27,7 +28,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_cam.setProjection( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -94,10 +95,10 @@ void NGLScene::initializeGL()
   m_cam.set( from, to, up );
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
+  m_cam.setProjection( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
 
 
-  shader->setUniform("camPos",m_cam.getEye().toVec3());
+  shader->setUniform("camPos",m_cam.getEye());
 
       std::array<ngl::Vec3,4>  lightColors = {{
           ngl::Vec3(250.0f, 250.0f, 250.0f),
@@ -141,9 +142,9 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
   ngl::Mat4 M;
-  M            = m_mouseGlobalTX * m_transform.getMatrix() ;
-  MV           = m_cam.getViewMatrix() * M;
-  MVP          = m_cam.getVPMatrix() * M;
+  M            = m_transform.getMatrix() ;
+  MV           = m_cam.getView() * M;
+  MVP          = m_cam.getVP() * M;
 
   normalMatrix = MV;
   normalMatrix.inverse().transpose();
@@ -157,10 +158,17 @@ void NGLScene::loadMatricesToShader()
   float sinTheta=sinf(textureRotation);
   ngl::Real texRot[4]={cosTheta,sinTheta,-sinTheta,cosTheta};
   shader->setUniformMatrix2fv("textureRotation",&texRot[0]);
+  shader->setUniform("camPos",m_cam.getEye());
+
 }
 
 void NGLScene::paintGL()
 {
+  float currentFrame = m_timer.elapsed()*0.001f;
+  std::cout<<"Current Frame "<<currentFrame<<'\n';
+  m_deltaTime = currentFrame - m_lastFrame;
+  m_lastFrame = currentFrame;
+
   glViewport( 0, 0, m_win.width, m_win.height );
   // clear the screen and depth buffer
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -169,20 +177,31 @@ void NGLScene::paintGL()
   ngl::ShaderLib* shader = ngl::ShaderLib::instance();
   ( *shader )[ "PBR" ]->use();
 
-  // Rotation based on the mouse position for our global transform
-  ngl::Mat4 rotX;
-  ngl::Mat4 rotY;
-  // create the rotation matrices
-  rotX.rotateX( m_win.spinXFace );
-  rotY.rotateY( m_win.spinYFace );
-  // multiply the rotations
-  m_mouseGlobalTX = rotX * rotY;
-  // add the translations
-  m_mouseGlobalTX.m_m[ 3 ][ 0 ] = m_modelPos.m_x;
-  m_mouseGlobalTX.m_m[ 3 ][ 1 ] = m_modelPos.m_y;
-  m_mouseGlobalTX.m_m[ 3 ][ 2 ] = m_modelPos.m_z;
-
+  /// first we reset the movement values
+  float xDirection=0.0;
+  float yDirection=0.0;
+  // now we loop for each of the pressed keys in the the set
+  // and see which ones have been pressed. If they have been pressed
+  // we set the movement value to be an incremental value
+  foreach(Qt::Key key, m_keysPressed)
+  {
+    switch (key)
+    {
+      case Qt::Key_Left :  { yDirection=-1.0f; break;}
+      case Qt::Key_Right : { yDirection=1.0f; break;}
+      case Qt::Key_Up :		 { xDirection=1.0f; break;}
+      case Qt::Key_Down :  { xDirection=-1.0f; break;}
+      default : break;
+    }
+  }
+  // if the set is non zero size we can update the ship movement
+  // then tell openGL to re-draw
+  if(m_keysPressed.size() !=0)
+  {
+    m_cam.move(xDirection,yDirection,m_deltaTime);
+  }
   // get the VBO instance and draw the built in teapot
+
   ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
 
   // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
@@ -207,7 +226,7 @@ void NGLScene::paintGL()
       for (int col = 0; col < nrColumns; ++col)
       {
         shader->setUniform("metallic", static_cast<float>(row) / nrRows);
-        tp.activateTexturePack(textures[(int)rng->randomPositiveNumber(5)]);
+        tp.activateTexturePack(textures[static_cast<int>(rng->randomPositiveNumber(5))]);
         // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
         // on direct lighting.
         shader->setUniform("roughnessScale", std::min(std::max(static_cast<float>(col) / nrColumns, 0.01f), 1.0f));
@@ -221,7 +240,7 @@ void NGLScene::paintGL()
       }
   }
   // draw floor
-  tp.activateTexturePack("wood");
+  tp.activateTexturePack("greasy");
 
   shader->setUniform("roughnessScale",0.0f);
   m_transform.reset();
@@ -240,21 +259,44 @@ void NGLScene::paintGL()
 
     for(size_t i=0; i<g_lightPositions.size(); ++i)
     {
-      tx.setPosition(g_lightPositions[i]);
-      MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
-      shader->setUniform("MVP",MVP);
-      prim->draw("sphere");
+      if(m_lightOn[i]==true)
+      {
+        tx.setPosition(g_lightPositions[i]);
+        MVP=m_cam.getVP()* m_mouseGlobalTX * tx.getMatrix() ;
+        shader->setUniform("MVP",MVP);
+        prim->draw("sphere");
+      }
     }
   }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 void NGLScene::keyPressEvent( QKeyEvent* _event )
 {
+  // add to our keypress set the values of any keys pressed
+  m_keysPressed += static_cast<Qt::Key>(_event->key());
   // that method is called every time the main window recives a key event.
   // we then switch on the key value and set the camera in the GLWindow
   ngl::Random *rng=ngl::Random::instance();
+  auto setLight=[](std::string _num,bool _mode)
+  {
+    ngl::ShaderLib *shader= ngl::ShaderLib::instance();
+    shader->use("PBR");
+    if(_mode == true)
+    {
+      ngl::Vec3 colour={255.0f,255.0f,255.0f};
+      shader->setUniform(_num,colour);
+    }
+    else
+    {
+      ngl::Vec3 colour={0.0f,0.0f,0.0f};
+      shader->setUniform(_num,colour);
+
+    }
+
+  };
   switch ( _event->key() )
   {
     // escape key to quit
@@ -290,8 +332,36 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
       m_win.spinYFace=0;
       m_modelPos.set(ngl::Vec3::zero());
     break;
+//    case Qt::Key_Left :
+//      m_cam.processKeyboard(Camera::Movement::LEFT, m_deltaTime);
+//    break;
+//    case Qt::Key_Right :
+//      m_cam.processKeyboard(Camera::Movement::RIGHT, m_deltaTime);
+//    break;
+//  case Qt::Key_Up :
+//    m_cam.processKeyboard(Camera::Movement::FORWARD, m_deltaTime);
+//  break;
+//  case Qt::Key_Down :
+//    m_cam.processKeyboard(Camera::Movement::BACKWARD, m_deltaTime);
+//  break;
+  case Qt::Key_1 :
+    setLight("lightColors[0]",m_lightOn[0]^=true); break;
+  case Qt::Key_2 :
+    setLight("lightColors[1]",m_lightOn[1]^=true); break;
+  case Qt::Key_3 :
+    setLight("lightColors[2]",m_lightOn[2]^=true); break;
+  case Qt::Key_4 :
+    setLight("lightColors[3]",m_lightOn[3]^=true); break;
+
     default:
       break;
   }
   update();
 }
+
+void NGLScene::keyReleaseEvent( QKeyEvent *_event	)
+{
+  // remove from our key set any keys that have been released
+  m_keysPressed -= (Qt::Key)_event->key();
+}
+

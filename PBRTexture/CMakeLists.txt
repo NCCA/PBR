@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 3.1)
 # Name of the project
-set(PROJECT_NAME SimpleNGL)
+set(PROJECT_NAME PBRTexture)
 project(${PROJECT_NAME})
 #Bring the headers into the project (local ones)
-include_directories(include $ENV{HOME}/NGL/include)
+include_directories(include $ENV{HOME}/NGL/include $ENV{HOME}/NGL/include/ngl/)
 # use C++ 11
 set(CMAKE_CXX_STANDARD 11)
 #the file(GLOB...) allows for wildcard additions of our src dir
 set(SOURCES ${PROJECT_SOURCE_DIR}/src/main.cpp  
 			${PROJECT_SOURCE_DIR}/src/NGLScene.cpp  
+			${PROJECT_SOURCE_DIR}/src/TexturePack.cpp  
 			${PROJECT_SOURCE_DIR}/src/NGLSceneMouseControls.cpp  
-			${PROJECT_SOURCE_DIR}/include/NGLScene.h  
-
+			${PROJECT_SOURCE_DIR}/src/Camera.cpp  
+			${PROJECT_SOURCE_DIR}/include/NGLScene.h 
+			${PROJECT_SOURCE_DIR}/include/TexturePack.h 
+			${PROJECT_SOURCE_DIR}/include/Camera.h 
+		
 )
 # use C++ 11
 set(CMAKE_CXX_STANDARD 11)
