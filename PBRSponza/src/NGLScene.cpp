@@ -325,5 +325,5 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 void NGLScene::keyReleaseEvent( QKeyEvent *_event	)
 {
   // remove from our key set any keys that have been released
-  m_keysPressed -= (Qt::Key)_event->key();
+  m_keysPressed -= static_cast<Qt::Key>(_event->key());
 }

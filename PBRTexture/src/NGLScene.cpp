@@ -332,18 +332,6 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
       m_win.spinYFace=0;
       m_modelPos.set(ngl::Vec3::zero());
     break;
-//    case Qt::Key_Left :
-//      m_cam.processKeyboard(Camera::Movement::LEFT, m_deltaTime);
-//    break;
-//    case Qt::Key_Right :
-//      m_cam.processKeyboard(Camera::Movement::RIGHT, m_deltaTime);
-//    break;
-//  case Qt::Key_Up :
-//    m_cam.processKeyboard(Camera::Movement::FORWARD, m_deltaTime);
-//  break;
-//  case Qt::Key_Down :
-//    m_cam.processKeyboard(Camera::Movement::BACKWARD, m_deltaTime);
-//  break;
   case Qt::Key_1 :
     setLight("lightColors[0]",m_lightOn[0]^=true); break;
   case Qt::Key_2 :
@@ -362,6 +350,6 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
 void NGLScene::keyReleaseEvent( QKeyEvent *_event	)
 {
   // remove from our key set any keys that have been released
-  m_keysPressed -= (Qt::Key)_event->key();
+  m_keysPressed -= static_cast<Qt::Key>(_event->key());
 }
 
