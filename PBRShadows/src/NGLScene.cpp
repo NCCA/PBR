@@ -25,7 +25,7 @@ NGLScene::~NGLScene()
 }
 
 constexpr float znear=1.0f;
-constexpr float zfar=25.0f;
+constexpr float zfar=45.0f;
 
 
 void NGLScene::resizeGL( int _w, int _h )
@@ -113,6 +113,10 @@ void NGLScene::initializeGL()
   shader->setUniform("roughnessMap", 3);
   shader->setUniform("aoMap", 4);
 
+  shader->setUniform("depthMap[0]",5);
+  shader->setUniform("depthMap[1]",6);
+  shader->setUniform("depthMap[2]",7);
+  shader->setUniform("depthMap[3]",8);
 
 
   ( *shader )[ ngl::nglColourShader ]->use();
@@ -120,7 +124,7 @@ void NGLScene::initializeGL()
 
   ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
   ngl::VAOPrimitives::instance()->createTrianglePlane("floor",25,25,10,10,ngl::Vec3::up());
-  ngl::Random::instance()->setSeed(m_seed);
+ // ngl::Random::instance()->setSeed(m_seed);
 
 
 }
@@ -143,15 +147,14 @@ void NGLScene::loadMatricesToShader()
   shader->setUniform( "MVP", MVP );
   shader->setUniform( "normalMatrix", normalMatrix );
   shader->setUniform( "M", M );
-  ngl::Random *rng = ngl::Random::instance();
   //shader->setUniform("textureRotation",);
-  ngl::Real textureRotation=ngl::radians((rng->randomNumber(180.0f)));
+  ngl::Real textureRotation=ngl::radians(180.0f);
   float cosTheta=cosf(textureRotation);
   float sinTheta=sinf(textureRotation);
   ngl::Real texRot[4]={cosTheta,sinTheta,-sinTheta,cosTheta};
   shader->setUniformMatrix2fv("textureRotation",&texRot[0]);
   shader->setUniform("camPos",m_cam.getEye());
-
+  shader->setUniform("far_plane",zfar);
 }
 
 
@@ -175,8 +178,6 @@ void NGLScene::shadowPass()
   glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
   glCullFace(GL_FRONT);
   ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
-  ngl::Random *rng=ngl::Random::instance();
-  ngl::Random::instance()->setSeed(m_seed);
 
   for(size_t i=0; i<m_lights.size(); ++i)
   {
@@ -196,7 +197,7 @@ void NGLScene::shadowPass()
           m_transform.setPosition(static_cast<float>(col - (nrColumns / 2)) * spacing,
                                   0.0f,
                                   static_cast<float>(row - (nrRows / 2)) * spacing);
-          m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
+          m_transform.setRotation(0.0f,45.0,0.0f);
 
           loadToShader(i);
           prim->draw("teapot");
@@ -255,8 +256,11 @@ void NGLScene::paintGL()
 
   ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
   // Shadow pass
-
-  shadowPass();
+  if(m_lightMoved ==true)
+  {
+    shadowPass();
+    m_lightMoved=false;
+  }
 
   /// Final Pass
   // set the viewport to the screen dimensions
@@ -278,7 +282,15 @@ void NGLScene::paintGL()
   ngl::Random *rng=ngl::Random::instance();
   ngl::Random::instance()->setSeed(m_seed);
   TexturePack tp;
-  tp.activateTexturePack("copper");
+  // bind textures for lightmaps
+  for(size_t i=0; i<m_lights.size(); ++i)
+  {
+    glActiveTexture(GL_TEXTURE5+i);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_lights[i]->getCubeMapID());
+    std::cout<<"Binding "<<m_lights[i]->getCubeMapID()<<'\n';
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+  }
   static  std::string textures[]=
   {
     "copper",
@@ -299,7 +311,7 @@ void NGLScene::paintGL()
         m_transform.setPosition(static_cast<float>(col - (nrColumns / 2)) * spacing,
                                 0.0f,
                                 static_cast<float>(row - (nrRows / 2)) * spacing);
-        m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
+        m_transform.setRotation(0.0f,45.0f,0.0f);
 
         loadMatricesToShader();
         prim->draw("teapot");
@@ -371,6 +383,7 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
       break;
     case Qt::Key_R :
       m_seed=static_cast<unsigned int>(rng->randomPositiveNumber(100000));
+      m_lightMoved=true;
     break;
 // turn on wirframe rendering
 #ifndef USINGIOS_

@@ -21,6 +21,7 @@ void main()
   // rotate texture cords for visual interest
   TexCoords=textureRotation*inUV;
   WorldPos = vec3(M * vec4(inVert, 1.0f));
+
   Normal=normalMatrix*inNormal;
   gl_Position = MVP*vec4(inVert,1.0);
 }

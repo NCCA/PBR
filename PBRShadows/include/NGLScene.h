@@ -96,7 +96,7 @@ private:
   std::array<std::unique_ptr<PointLightShadow>,4> m_lights;
   void shadowPass();
   void loadShadowShader();
-
+  bool m_lightMoved=true;
   //----------------------------------------------------------------------------------------------------------------------
   /// @brief the keys being pressed
   //----------------------------------------------------------------------------------------------------------------------
