@@ -3,13 +3,13 @@
 /// @brief the vertex passed in
 layout (location = 0) in vec3 inVert;
 /// @brief the normal passed in
-layout (location = 2) in vec3 inNormal;
+layout (location = 1) in vec3 inNormal;
 /// @brief the in uv
-layout (location = 1) in vec2 inUV;
+layout (location = 2) in vec2 inUV;
 
-out vec2 TexCoords;
-out vec3 WorldPos;
-out vec3 Normal;
+out vec2 texCoords;
+out vec3 worldPos;
+out vec3 normal;
 
 uniform mat4 MVP;
 uniform mat3 normalMatrix;
@@ -19,8 +19,8 @@ void main()
 {
 
   // rotate texture cords for visual interest
-  TexCoords=textureRotation*inUV;
-  WorldPos = vec3(M * vec4(inVert, 1.0f));
-  Normal=normalMatrix*inNormal;
+  texCoords=textureRotation*inUV;
+  worldPos = vec3(M * vec4(inVert, 1.0f));
+  normal=normalMatrix*inNormal;
   gl_Position = MVP*vec4(inVert,1.0);
 }

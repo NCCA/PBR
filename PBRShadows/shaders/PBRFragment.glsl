@@ -1,5 +1,5 @@
-#version 330 core
-out vec4 FragColor;
+#version 410 core
+layout (location=0) out vec4 fragColor;
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
@@ -16,7 +16,7 @@ uniform vec3 lightPositions[4];
 uniform vec3 lightColors[4];
 uniform samplerCube depthMap[4];
 uniform float far_plane;
-
+uniform float exposure=2.2;
 uniform vec3 camPos;
 
 const float PI = 3.14159265359;
@@ -42,7 +42,7 @@ vec3 getNormalFromMap()
     return normalize(TBN * tangentNormal);
 }
 // ----------------------------------------------------------------------------
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float distributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a = roughness*roughness;
     float a2 = a*a;
@@ -56,7 +56,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
-float GeometrySchlickGGX(float NdotV, float roughness)
+float geometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
     float k = (r*r) / 8.0;
@@ -67,12 +67,12 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    float ggx2 = geometrySchlickGGX(NdotV, roughness);
+    float ggx1 = geometrySchlickGGX(NdotL, roughness);
 
     return ggx1 * ggx2;
 }
@@ -94,38 +94,12 @@ vec3 gridSamplingDisk[20] = vec3[]
    vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
 );
 
-float ShadowCalculation(vec3 fragPos, int _lightIndex)
+float shadowCalculation(vec3 fragPos, int _lightIndex)
 {
     // get vector between fragment position and light position
     vec3 fragToLight = fragPos - lightPositions[_lightIndex];
-    // use the fragment to light vector to sample from the depth map
-    // float closestDepth = texture(depthMap, fragToLight).r;
-    // it is currently in linear range between [0,1], let's re-transform it back to original depth value
-    // closestDepth *= far_plane;
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
-    // test for shadows
-    // float bias = 0.05; // we use a much larger bias since depth is now in [near_plane, far_plane] range
-    // float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
-    // PCF
-    // float shadow = 0.0;
-    // float bias = 0.05;
-    // float samples = 4.0;
-    // float offset = 0.1;
-    // for(float x = -offset; x < offset; x += offset / (samples * 0.5))
-    // {
-        // for(float y = -offset; y < offset; y += offset / (samples * 0.5))
-        // {
-            // for(float z = -offset; z < offset; z += offset / (samples * 0.5))
-            // {
-                // float closestDepth = texture(depthMap, fragToLight + vec3(x, y, z)).r; // use lightdir to lookup cubemap
-                // closestDepth *= far_plane;   // Undo mapping [0;1]
-                // if(currentDepth - bias > closestDepth)
-                    // shadow += 1.0;
-            // }
-        // }
-    // }
-    // shadow /= (samples * samples * samples);
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
@@ -139,9 +113,6 @@ float ShadowCalculation(vec3 fragPos, int _lightIndex)
             shadow += 1.0;
     }
     shadow /= float(samples);
-
-    // display closestDepth as debug (to visualize depth cubemap)
-    // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);
 
     return shadow;
 }
@@ -174,8 +145,8 @@ void main()
         vec3 radiance = lightColors[i] * attenuation;
 
         // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, roughness);
-        float G   = GeometrySmith(N, V, L, roughness);
+        float NDF = distributionGGX(N, H, roughness);
+        float G   = geometrySmith(N, V, L, roughness);
         vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
         vec3 nominator    = NDF * G * F;
@@ -195,11 +166,11 @@ void main()
 
         // scale light by NdotL
         float NdotL = max(dot(N, L), 0.0);
-        float shadow = ShadowCalculation(WorldPos,i);
+       float shadow = shadowCalculation(WorldPos,i);
 
         // add to outgoing radiance Lo
-        Lo +=(kD * albedo / PI + specular) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-        Lo *=(1-shadow);
+        Lo +=((1-shadow)*(kD * albedo / PI + specular)) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+        //Lo *=;
     }
 
     // ambient lighting (note that the next IBL tutorial will replace
@@ -212,7 +183,7 @@ void main()
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct
-    color = pow(color, vec3(1.0/2.2));
+    color = pow(color, vec3(1.0/exposure));
 
-    FragColor = vec4(color, 1.0);
+    fragColor = vec4(color, 1.0);
 }

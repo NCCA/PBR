@@ -2,9 +2,9 @@
 // This code is based on code from here https://learnopengl.com/#!PBR/Lighting
 layout (location =0) out vec4 fragColour;
 
-in vec2 TexCoords;
-in vec3 WorldPos;
-in vec3 Normal;
+in vec2 texCoords;
+in vec3 worldPos;
+in vec3 normal;
 in mat3 TBN;
 
 // material parameters
@@ -64,11 +64,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 // ----------------------------------------------------------------------------
 void main()
 {		
-    vec3 N = normalize(Normal);
-    vec3 V = normalize(camPos - WorldPos);
+    vec3 N = normalize(normal);
+    vec3 V = normalize(camPos - worldPos);
     vec3 R = reflect(-V, N); 
 
-    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
+    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
     // of 0.04 and if it's a metal, use their albedo color as F0 (metallic workflow)    
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
@@ -78,15 +78,15 @@ void main()
     for(int i = 0; i < 4; ++i) 
     {
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - WorldPos);
+        vec3 L = normalize(lightPositions[i] - worldPos);
         vec3 H = normalize(V + L);
-        float distance = length(lightPositions[i] - WorldPos);
+        float distance = length(lightPositions[i] - worldPos);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = lightColors[i] * attenuation;
 
         // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, roughness);   
-        float G   = GeometrySmith(N, V, L, roughness);      
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
         vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
            
         vec3 nominator    = NDF * G * F; 
@@ -120,7 +120,7 @@ void main()
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct
-    color = pow(color, vec3(1.0/2.2)); 
+    color = pow(color, vec3(1.0/2.2));
 
     fragColour = vec4(color, 1.0);
 }

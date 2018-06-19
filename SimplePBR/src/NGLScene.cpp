@@ -2,7 +2,7 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#include <ngl/Camera.h>
+//#include <ngl/Camera.h>
 #include <ngl/NGLInit.h>
 #include <ngl/NGLStream.h>
 #include <ngl/Random.h>
@@ -25,7 +25,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_projection=ngl::perspective(45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -86,16 +86,14 @@ void NGLScene::initializeGL()
   ngl::Vec3 to( 0, 0, 0 );
   ngl::Vec3 up( 0, 1, 0 );
   // now load to our new camera
-  m_cam.set( from, to, up );
-  // set the shape using FOV 45 Aspect Ratio based on Width and Height
-  // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
+  m_view=ngl::lookAt( from, to, up );
+  m_projection=ngl::perspective(45.0f, 1024.0f  / 720.0f, 0.05f, 350.0f );
 
 
   shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
   shader->setUniform("ao",1.0f);
-  shader->setUniform("camPos",m_cam.getEye().toVec3());
-  shader->setUniform("exposure",1.0f);
+  shader->setUniform("camPos",from);
+  shader->setUniform("exposure",2.2f);
 
       std::array<ngl::Vec3,4>  lightColors = {{
           ngl::Vec3(300.0f, 300.0f, 300.0f),
@@ -110,10 +108,9 @@ void NGLScene::initializeGL()
     shader->setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),lightColors[i]);
   }
   ( *shader )[ ngl::nglColourShader ]->use();
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
-  ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
   ngl::VAOPrimitives::instance()->createTrianglePlane("floor",20,20,10,10,ngl::Vec3::up());
+  ngl::VAOPrimitives::instance()->createSphere("sphere",1.0f,20);
 
 }
 
@@ -121,20 +118,23 @@ void NGLScene::initializeGL()
 void NGLScene::loadMatricesToShader()
 {
   ngl::ShaderLib* shader = ngl::ShaderLib::instance();
+  shader->use("PBR");
+  struct transform
+  {
+    ngl::Mat4 MVP;
+    ngl::Mat4 normalMatrix;
+    ngl::Mat4 M;
+  };
 
-  ngl::Mat4 MV;
-  ngl::Mat4 MVP;
-  ngl::Mat3 normalMatrix;
-  ngl::Mat4 M;
-  M            = m_mouseGlobalTX * m_transform.getMatrix() ;
-  MV           = m_cam.getViewMatrix() * M;
-  MVP          = m_cam.getVPMatrix() * M;
+   transform t;
+   t.M=m_view* m_mouseGlobalTX*m_transform.getMatrix();
 
-  normalMatrix = MV;
-  normalMatrix.inverse().transpose();
-  shader->setUniform( "MVP", MVP );
-  shader->setUniform( "normalMatrix", normalMatrix );
-  shader->setUniform( "M", M );
+   t.MVP=m_projection*t.M;
+   t.normalMatrix=t.M;
+   t.normalMatrix.inverse().transpose();
+   shader->setUniformBuffer("TransformUBO",sizeof(transform),&t.MVP.m_00);
+
+
 }
 
 void NGLScene::paintGL()
@@ -169,6 +169,7 @@ void NGLScene::paintGL()
   float spacing = 2.0;
 
   shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
+
   shader->setUniform("ao",1.0f);
   ngl::Random *rng=ngl::Random::instance();
   rng->setSeed(10);
@@ -209,7 +210,7 @@ void NGLScene::paintGL()
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
     tx.setPosition(g_lightPositions[i]);
-    MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
+    MVP=m_projection*m_view * m_mouseGlobalTX * tx.getMatrix() ;
     shader->setUniform("MVP",MVP);
     prim->draw("sphere");
   }

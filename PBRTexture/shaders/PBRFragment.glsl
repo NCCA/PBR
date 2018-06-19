@@ -1,8 +1,8 @@
-#version 330 core
+#version 410 core
 out vec4 FragColor;
-in vec2 TexCoords;
-in vec3 WorldPos;
-in vec3 Normal;
+in vec2 texCoords;
+in vec3 worldPos;
+in vec3 normal;
 
 // material parameters
 uniform sampler2D albedoMap;
@@ -23,24 +23,24 @@ const float PI = 3.14159265359;
 // Don't worry if you don't get what's going on; you generally want to do normal
 // mapping the usual way for performance anways; I do plan make a note of this
 // technique somewhere later in the normal mapping tutorial.
-vec3 getNormalFromMap()
+vec3 getnormalFromMap()
 {
-    vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+    vec3 tangentnormal = texture(normalMap, texCoords).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx(WorldPos);
-    vec3 Q2  = dFdy(WorldPos);
-    vec2 st1 = dFdx(TexCoords);
-    vec2 st2 = dFdy(TexCoords);
+    vec3 Q1  = dFdx(worldPos);
+    vec3 Q2  = dFdy(worldPos);
+    vec2 st1 = dFdx(texCoords);
+    vec2 st2 = dFdy(texCoords);
 
-    vec3 N   = normalize(Normal);
+    vec3 N   = normalize(normal);
     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
     vec3 B  = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
 
-    return normalize(TBN * tangentNormal);
+    return normalize(TBN * tangentnormal);
 }
 // ----------------------------------------------------------------------------
-float DistributionGGX(vec3 N, vec3 H, float roughness)
+float distributionGGX(vec3 N, vec3 H, float roughness)
 {
     float a = roughness*roughness;
     float a2 = a*a;
@@ -54,7 +54,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
-float GeometrySchlickGGX(float NdotV, float roughness)
+float geometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
     float k = (r*r) / 8.0;
@@ -65,12 +65,12 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return nom / denom;
 }
 // ----------------------------------------------------------------------------
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    float ggx2 = geometrySchlickGGX(NdotV, roughness);
+    float ggx1 = geometrySchlickGGX(NdotL, roughness);
 
     return ggx1 * ggx2;
 }
@@ -82,13 +82,13 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 // ----------------------------------------------------------------------------
 void main()
 {
-    vec3 albedo     = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
-    float metallic  = texture(metallicMap, TexCoords).r;
-    float roughness = texture(roughnessMap, TexCoords).r;
-    float ao        = texture(aoMap, TexCoords).r;
+    vec3 albedo     = pow(texture(albedoMap, texCoords).rgb, vec3(2.2));
+    float metallic  = texture(metallicMap, texCoords).r;
+    float roughness = texture(roughnessMap, texCoords).r;
+    float ao        = texture(aoMap, texCoords).r;
 
-    vec3 N = getNormalFromMap();
-    vec3 V = normalize(camPos - WorldPos);
+    vec3 N = getnormalFromMap();
+    vec3 V = normalize(camPos - worldPos);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
@@ -100,15 +100,15 @@ void main()
     for(int i = 0; i < 4; ++i)
     {
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - WorldPos);
+        vec3 L = normalize(lightPositions[i] - worldPos);
         vec3 H = normalize(V + L);
-        float distance = length(lightPositions[i] - WorldPos);
+        float distance = length(lightPositions[i] - worldPos);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = lightColors[i] * attenuation;
 
         // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, roughness);
-        float G   = GeometrySmith(N, V, L, roughness);
+        float NDF = distributionGGX(N, H, roughness);
+        float G   = geometrySmith(N, V, L, roughness);
         vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
         vec3 nominator    = NDF * G * F;

@@ -2,7 +2,6 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#include <ngl/Camera.h>
 #include <ngl/NGLInit.h>
 #include <ngl/NGLStream.h>
 #include <ngl/Random.h>
@@ -134,20 +133,26 @@ void NGLScene::loadMatricesToShader()
 {
   ngl::ShaderLib* shader = ngl::ShaderLib::instance();
   shader->use("PBR");
-  ngl::Mat4 MV;
-  ngl::Mat4 MVP;
-  ngl::Mat3 normalMatrix;
-  ngl::Mat4 M;
-  M   = m_transform.getMatrix() ;
-  MV  = m_cam.getView() * M;
-  MVP = m_cam.getVP() * M;
 
-  normalMatrix = MV;
-  normalMatrix.inverse().transpose();
-  shader->setUniform( "MVP", MVP );
-  shader->setUniform( "normalMatrix", normalMatrix );
-  shader->setUniform( "M", M );
-  //shader->setUniform("textureRotation",);
+  // there is a buffer on the shader like this
+  struct transform
+  {
+    ngl::Mat4 MVP;
+    ngl::Mat4 normalMatrix;
+    ngl::Mat4 M;
+  };
+
+
+  transform t;
+  t.M=m_transform.getMatrix();
+  // we set the values
+  t.MVP=m_cam.getVP()*t.M;
+  t.normalMatrix=t.M;
+  t.normalMatrix.inverse().transpose();
+  // then effectivly memcpy the data across
+  shader->setUniformBuffer("TransformUBO",sizeof(transform),&t.MVP.m_00);
+
+  // other uniforms for texture rotation and camera position used in shader calculations
   ngl::Real textureRotation=ngl::radians(180.0f);
   float cosTheta=cosf(textureRotation);
   float sinTheta=sinf(textureRotation);
@@ -166,6 +171,11 @@ void NGLScene::shadowPass()
       shader->setUniform("M",m_transform.getMatrix());
       shader->setUniform("lightPos",m_lights[_light]->pos());
       shader->setUniform("far_plane",zfar);
+      if(m_lightOn[_light]==true)
+        shader->setUniform("lightActive",true);
+      else
+        shader->setUniform("lightActive",false);
+
 };
   //----------------------------------------------------------------------------------------------------------------------
   // Pass 1 render our Depth texture to the FBO
@@ -358,7 +368,7 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
   // that method is called every time the main window recives a key event.
   // we then switch on the key value and set the camera in the GLWindow
   ngl::Random *rng=ngl::Random::instance();
-  auto setLight=[](std::string _num,bool _mode)
+  auto setLight=[this](std::string _num,bool _mode)
   {
     ngl::ShaderLib *shader= ngl::ShaderLib::instance();
     shader->use("PBR");
@@ -373,6 +383,7 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
       shader->setUniform(_num,colour);
 
     }
+    m_lightMoved=true;
 
   };
   switch ( _event->key() )
