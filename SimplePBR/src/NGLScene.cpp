@@ -2,7 +2,6 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#include <ngl/Camera.h>
 #include <ngl/NGLInit.h>
 #include <ngl/NGLStream.h>
 #include <ngl/Random.h>
@@ -25,7 +24,7 @@ NGLScene::~NGLScene()
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_project=ngl::perspective( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -86,15 +85,15 @@ void NGLScene::initializeGL()
   ngl::Vec3 to( 0, 0, 0 );
   ngl::Vec3 up( 0, 1, 0 );
   // now load to our new camera
-  m_cam.set( from, to, up );
+  m_view=ngl::lookAt( from, to, up );
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
+  m_project=ngl::perspective( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
 
 
   shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
   shader->setUniform("ao",1.0f);
-  shader->setUniform("camPos",m_cam.getEye().toVec3());
+  shader->setUniform("camPos",from);
   shader->setUniform("exposure",1.0f);
 
       std::array<ngl::Vec3,4>  lightColors = {{
@@ -127,8 +126,8 @@ void NGLScene::loadMatricesToShader()
   ngl::Mat3 normalMatrix;
   ngl::Mat4 M;
   M            = m_mouseGlobalTX * m_transform.getMatrix() ;
-  MV           = m_cam.getViewMatrix() * M;
-  MVP          = m_cam.getVPMatrix() * M;
+  MV           = m_view * M;
+  MVP          = m_project * MV;
 
   normalMatrix = MV;
   normalMatrix.inverse().transpose();
@@ -209,7 +208,7 @@ void NGLScene::paintGL()
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
     tx.setPosition(g_lightPositions[i]);
-    MVP=m_cam.getVPMatrix()* m_mouseGlobalTX * tx.getMatrix() ;
+    MVP=m_view*m_project* m_mouseGlobalTX * tx.getMatrix() ;
     shader->setUniform("MVP",MVP);
     prim->draw("sphere");
   }

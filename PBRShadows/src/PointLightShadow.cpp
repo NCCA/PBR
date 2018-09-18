@@ -36,7 +36,7 @@ void PointLightShadow::buildCubeMap() noexcept
   glBindTexture(GL_TEXTURE_CUBE_MAP, m_depthCubeMapID);
   for (unsigned int i = 0; i < 6; ++i)
   {
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
   }
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -70,7 +70,7 @@ void PointLightShadow::loadShaders() noexcept
   shader->loadShader(c_shaderName,"shaders/PointShadowVertex.glsl",
                                   "shaders/PointShadowFragment.glsl",
                                   "shaders/PointShadowGeometry.glsl",
-                                  false);
+                                  ngl::ErrorExit::OFF);
   shader->linkProgramObject(c_shaderName);
   shader->use(c_shaderName);
 

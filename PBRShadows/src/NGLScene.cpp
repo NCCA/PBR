@@ -2,7 +2,6 @@
 #include <QGuiApplication>
 #include <QMouseEvent>
 
-#include <ngl/Camera.h>
 #include <ngl/NGLInit.h>
 #include <ngl/NGLStream.h>
 #include <ngl/Random.h>

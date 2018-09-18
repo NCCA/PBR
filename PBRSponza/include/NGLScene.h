@@ -1,13 +1,13 @@
 #ifndef NGLSCENE_H_
 #define NGLSCENE_H_
+#include <QOpenGLWindow>
+#include <QElapsedTimer>
+#include <QSet>
 #include "WindowParams.h"
 #include <ngl/Transformation.h>
 #include "Mtl.h"
 #include "GroupedObj.h"
 #include "FirstPersonCamera.h"
-#include <QOpenGLWindow>
-#include <QElapsedTimer>
-#include <QSet>
 
 #include <memory>
 
@@ -35,7 +35,7 @@ class NGLScene : public QOpenGLWindow
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief dtor must close down ngl and release OpenGL resources
     //----------------------------------------------------------------------------------------------------------------------
-    ~NGLScene();
+    ~NGLScene() override;
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief the initialize class is called once when the window is created and we have a valid GL context
     /// use this to setup any default GL stuff
