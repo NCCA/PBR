@@ -1,5 +1,5 @@
 #include "TexturePack.h"
-#include <rapidjson/document.h>
+#include <ngl/rapidjson/document.h>
 #include <fstream>
 #include <iostream>
 #include <ngl/Texture.h>

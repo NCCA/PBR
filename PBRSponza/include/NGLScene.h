@@ -1,14 +1,13 @@
 #ifndef NGLSCENE_H_
 #define NGLSCENE_H_
-#include <QOpenGLWindow>
-#include <QElapsedTimer>
-#include <QSet>
 #include "WindowParams.h"
 #include <ngl/Transformation.h>
 #include "Mtl.h"
 #include "GroupedObj.h"
 #include "FirstPersonCamera.h"
-
+#include <QOpenGLWindow>
+#include <QElapsedTimer>
+#include <QSet>
 #include <memory>
 
 //----------------------------------------------------------------------------------------------------------------------
