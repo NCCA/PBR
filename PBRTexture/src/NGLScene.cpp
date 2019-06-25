@@ -224,11 +224,7 @@ void NGLScene::paintGL()
   {
       for (int col = 0; col < nrColumns; ++col)
       {
-        shader->setUniform("metallic", static_cast<float>(row) / nrRows);
         tp.activateTexturePack(textures[static_cast<int>(rng->randomPositiveNumber(5))]);
-        // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
-        // on direct lighting.
-        shader->setUniform("roughnessScale", std::min(std::max(static_cast<float>(col) / nrColumns, 0.01f), 1.0f));
         m_transform.setPosition(static_cast<float>(col - (nrColumns / 2)) * spacing,
                                 0.0f,
                                 static_cast<float>(row - (nrRows / 2)) * spacing);
@@ -241,7 +237,7 @@ void NGLScene::paintGL()
   // draw floor
   tp.activateTexturePack("greasy");
 
-  shader->setUniform("roughnessScale",0.0f);
+//  shader->setUniform("roughnessScale",0.0f);
   m_transform.reset();
   m_transform.setPosition(0.0f,-0.5f,0.0f);
   loadMatricesToShader();
