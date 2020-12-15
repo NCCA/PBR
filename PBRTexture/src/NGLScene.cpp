@@ -44,9 +44,7 @@ void NGLScene::initializeGL()
 {
   // we must call that first before any other GL commands to load and link the
   // gl commands from the lib, if that is not done program will crash
-  ngl::NGLInit::instance();
-  TexturePack tp;
-  tp.loadJSON("textures/textures.json");
+  ngl::NGLInit::initialize();
 
 
   glClearColor( 0.4f, 0.4f, 0.4f, 1.0f ); // Grey Background
@@ -56,34 +54,33 @@ void NGLScene::initializeGL()
   #ifndef USINGIOS_
   glEnable( GL_MULTISAMPLE );
   #endif
-  // now to load the shader and set the values
-  // grab an instance of shader manager
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
   // we are creating a shader called Phong to save typos
   // in the code create some constexpr
   constexpr auto shaderProgram = "PBR";
   constexpr auto vertexShader  = "PBRVertex";
   constexpr auto fragShader    = "PBRFragment";
   // create the shader program
-  shader->createShaderProgram( shaderProgram );
+/*  ngl::ShaderLib::createShaderProgram( shaderProgram );
   // now we are going to create empty shaders for Frag and Vert
-  shader->attachShader( vertexShader, ngl::ShaderType::VERTEX );
-  shader->attachShader( fragShader, ngl::ShaderType::FRAGMENT );
+  ngl::ShaderLib::attachShader( vertexShader, ngl::ShaderType::VERTEX );
+  ngl::ShaderLib::attachShader( fragShader, ngl::ShaderType::FRAGMENT );
   // attach the source
-  shader->loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
-  shader->loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
+  ngl::ShaderLib::loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
+  ngl::ShaderLib::loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
   // compile the shaders
-  shader->compileShader( vertexShader );
-  shader->compileShader( fragShader );
+  ngl::ShaderLib::compileShader( vertexShader );
+  ngl::ShaderLib::compileShader( fragShader );
   // add them to the program
-  shader->attachShaderToProgram( shaderProgram, vertexShader );
-  shader->attachShaderToProgram( shaderProgram, fragShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, vertexShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, fragShader );
 
 
   // now we have associated that data we can link the shader
-  shader->linkProgramObject( shaderProgram );
+  ngl::ShaderLib::linkProgramObject( shaderProgram );
   // and make it active ready to load values
-  ( *shader )[ shaderProgram ]->use();
+  */
+  ngl::ShaderLib::loadShader(shaderProgram, "shaders/PBRVertex.glsl", "shaders/PBRFragment.glsl");
+  ngl::ShaderLib::use(shaderProgram);
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
@@ -97,7 +94,7 @@ void NGLScene::initializeGL()
   m_cam.setProjection( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
 
 
-  shader->setUniform("camPos",m_cam.getEye());
+  ngl::ShaderLib::setUniform("camPos",m_cam.getEye());
 
       std::array<ngl::Vec3,4>  lightColors = {{
           ngl::Vec3(250.0f, 250.0f, 250.0f),
@@ -109,34 +106,34 @@ void NGLScene::initializeGL()
 
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
-    shader->setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
-    shader->setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),lightColors[i]);
+    ngl::ShaderLib::setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
+    ngl::ShaderLib::setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),lightColors[i]);
   }
-  shader->setUniform("albedoMap", 0);
-  shader->setUniform("normalMap", 1);
-  shader->setUniform("metallicMap", 2);
-  shader->setUniform("roughnessMap", 3);
-  shader->setUniform("aoMap", 4);
+  ngl::ShaderLib::setUniform("albedoMap", 0);
+  ngl::ShaderLib::setUniform("normalMap", 1);
+  ngl::ShaderLib::setUniform("metallicMap", 2);
+  ngl::ShaderLib::setUniform("roughnessMap", 3);
+  ngl::ShaderLib::setUniform("aoMap", 4);
 
 
 
-  ( *shader )[ ngl::nglColourShader ]->use();
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::use(ngl::nglColourShader);
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
 
 
-  ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
-  ngl::VAOPrimitives::instance()->createTrianglePlane("floor",25,25,10,10,ngl::Vec3::up());
-  ngl::Random::instance()->setSeed(m_seed);
+  ngl::VAOPrimitives::createSphere("sphere",0.5,20.0f);
+  ngl::VAOPrimitives::createTrianglePlane("floor",25,25,10,10,ngl::Vec3::up());
+  ngl::Random::setSeed(m_seed);
 
+  TexturePack tp;
+  tp.loadJSON("textures/textures.json");
 
 }
 
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
-
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
@@ -147,17 +144,16 @@ void NGLScene::loadMatricesToShader()
 
   normalMatrix = MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform( "MVP", MVP );
-  shader->setUniform( "normalMatrix", normalMatrix );
-  shader->setUniform( "M", M );
-  ngl::Random *rng = ngl::Random::instance();
-  //shader->setUniform("textureRotation",);
-  ngl::Real textureRotation=ngl::radians((rng->randomNumber(180.0f)));
+  ngl::ShaderLib::setUniform( "MVP", MVP );
+  ngl::ShaderLib::setUniform( "normalMatrix", normalMatrix );
+  ngl::ShaderLib::setUniform( "M", M );
+  //ngl::ShaderLib::setUniform("textureRotation",);
+  ngl::Real textureRotation=ngl::radians((ngl::Random::randomNumber(180.0f)));
   float cosTheta=cosf(textureRotation);
   float sinTheta=sinf(textureRotation);
   ngl::Real texRot[4]={cosTheta,sinTheta,-sinTheta,cosTheta};
-  shader->setUniformMatrix2fv("textureRotation",&texRot[0]);
-  shader->setUniform("camPos",m_cam.getEye());
+  ngl::ShaderLib::setUniformMatrix2fv("textureRotation",&texRot[0]);
+  ngl::ShaderLib::setUniform("camPos",m_cam.getEye());
 
 }
 
@@ -172,9 +168,7 @@ void NGLScene::paintGL()
   // clear the screen and depth buffer
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-  // grab an instance of the shader manager
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
-  ( *shader )[ "PBR" ]->use();
+  ngl::ShaderLib::use("PBR");
 
   /// first we reset the movement values
   float xDirection=0.0;
@@ -199,17 +193,13 @@ void NGLScene::paintGL()
   {
     m_cam.move(xDirection,yDirection,m_deltaTime);
   }
-  // get the VBO instance and draw the built in teapot
-
-  ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
 
   // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
   int nrRows    = 10;
   int nrColumns = 10;
   float spacing = 2.0;
 
-  ngl::Random *rng=ngl::Random::instance();
-  ngl::Random::instance()->setSeed(m_seed);
+  ngl::Random::setSeed(m_seed);
   TexturePack tp;
   tp.activateTexturePack("copper");
   static  std::string textures[]=
@@ -224,33 +214,33 @@ void NGLScene::paintGL()
   {
       for (int col = 0; col < nrColumns; ++col)
       {
-        tp.activateTexturePack(textures[static_cast<int>(rng->randomPositiveNumber(5))]);
+        tp.activateTexturePack(textures[static_cast<int>(ngl::Random::randomPositiveNumber(5))]);
         m_transform.setPosition(static_cast<float>(col - (nrColumns / 2)) * spacing,
                                 0.0f,
                                 static_cast<float>(row - (nrRows / 2)) * spacing);
-        m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
+        m_transform.setRotation(0.0f,ngl::Random::randomPositiveNumber()*360.0f,0.0f);
 
         loadMatricesToShader();
-        prim->draw("teapot");
+        ngl::VAOPrimitives::draw("teapot");
       }
   }
   // draw floor
   tp.activateTexturePack("greasy");
 
-//  shader->setUniform("roughnessScale",0.0f);
+//  ngl::ShaderLib::setUniform("roughnessScale",0.0f);
   m_transform.reset();
   m_transform.setPosition(0.0f,-0.5f,0.0f);
   loadMatricesToShader();
-  prim->draw("floor");
+  ngl::VAOPrimitives::draw("floor");
 
 
   // Draw Lights
   if(m_drawLights)
   {
-    ( *shader )[ ngl::nglColourShader ]->use();
+    ngl::ShaderLib::use(ngl::nglColourShader);
     ngl::Mat4 MVP;
     ngl::Transformation tx;
-    shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+    ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
     for(size_t i=0; i<g_lightPositions.size(); ++i)
     {
@@ -258,8 +248,8 @@ void NGLScene::paintGL()
       {
         tx.setPosition(g_lightPositions[i]);
         MVP=m_cam.getVP()* m_mouseGlobalTX * tx.getMatrix() ;
-        shader->setUniform("MVP",MVP);
-        prim->draw("sphere");
+        ngl::ShaderLib::setUniform("MVP",MVP);
+        ngl::VAOPrimitives::draw("sphere");
       }
     }
   }
@@ -274,20 +264,18 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
   m_keysPressed += static_cast<Qt::Key>(_event->key());
   // that method is called every time the main window recives a key event.
   // we then switch on the key value and set the camera in the GLWindow
-  ngl::Random *rng=ngl::Random::instance();
   auto setLight=[](std::string _num,bool _mode)
   {
-    ngl::ShaderLib *shader= ngl::ShaderLib::instance();
-    shader->use("PBR");
+    ngl::ShaderLib::use("PBR");
     if(_mode == true)
     {
       ngl::Vec3 colour={255.0f,255.0f,255.0f};
-      shader->setUniform(_num,colour);
+      ngl::ShaderLib::setUniform(_num,colour);
     }
     else
     {
       ngl::Vec3 colour={0.0f,0.0f,0.0f};
-      shader->setUniform(_num,colour);
+      ngl::ShaderLib::setUniform(_num,colour);
 
     }
 
@@ -299,7 +287,7 @@ void NGLScene::keyPressEvent( QKeyEvent* _event )
       QGuiApplication::exit( EXIT_SUCCESS );
       break;
     case Qt::Key_R :
-      m_seed=static_cast<unsigned int>(rng->randomPositiveNumber(100000));
+      m_seed=static_cast<unsigned int>(ngl::Random::randomPositiveNumber(100000));
     break;
 // turn on wirframe rendering
 #ifndef USINGIOS_

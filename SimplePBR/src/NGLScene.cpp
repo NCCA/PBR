@@ -42,7 +42,7 @@ void NGLScene::initializeGL()
 {
   // we must call that first before any other GL commands to load and link the
   // gl commands from the lib, if that is not done program will crash
-  ngl::NGLInit::instance();
+  ngl::NGLInit::initialize();
   glClearColor( 0.4f, 0.4f, 0.4f, 1.0f ); // Grey Background
   // enable depth testing for drawing
   glEnable( GL_DEPTH_TEST );
@@ -50,34 +50,31 @@ void NGLScene::initializeGL()
 #ifndef USINGIOS_
   glEnable( GL_MULTISAMPLE );
 #endif
-  // now to load the shader and set the values
-  // grab an instance of shader manager
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
-  // we are creating a shader called Phong to save typos
-  // in the code create some constexpr
+
+
   constexpr auto shaderProgram = "PBR";
   constexpr auto vertexShader  = "PBRVertex";
   constexpr auto fragShader    = "PBRFragment";
   // create the shader program
-  shader->createShaderProgram( shaderProgram );
+  ngl::ShaderLib::createShaderProgram( shaderProgram );
   // now we are going to create empty shaders for Frag and Vert
-  shader->attachShader( vertexShader, ngl::ShaderType::VERTEX );
-  shader->attachShader( fragShader, ngl::ShaderType::FRAGMENT );
+  ngl::ShaderLib::attachShader( vertexShader, ngl::ShaderType::VERTEX );
+  ngl::ShaderLib::attachShader( fragShader, ngl::ShaderType::FRAGMENT );
   // attach the source
-  shader->loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
-  shader->loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
+  ngl::ShaderLib::loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
+  ngl::ShaderLib::loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
   // compile the shaders
-  shader->compileShader( vertexShader );
-  shader->compileShader( fragShader );
+  ngl::ShaderLib::compileShader( vertexShader );
+  ngl::ShaderLib::compileShader( fragShader );
   // add them to the program
-  shader->attachShaderToProgram( shaderProgram, vertexShader );
-  shader->attachShaderToProgram( shaderProgram, fragShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, vertexShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, fragShader );
 
 
   // now we have associated that data we can link the shader
-  shader->linkProgramObject( shaderProgram );
+  ngl::ShaderLib::linkProgramObject( shaderProgram );
   // and make it active ready to load values
-  ( *shader )[ shaderProgram ]->use();
+  ngl::ShaderLib::use( shaderProgram );
   // Now we will create a basic Camera from the graphics library
   // This is a static camera so it only needs to be set once
   // First create Values for the camera position
@@ -91,13 +88,13 @@ void NGLScene::initializeGL()
   m_project=ngl::perspective( 45.0f, 720.0f / 576.0f, 0.05f, 350.0f );
 
 
-  shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
-  shader->setUniform("ao",1.0f);
-  shader->setUniform("camPos",from);
-  shader->setUniform("exposure",1.0f);
+  ngl::ShaderLib::setUniform("albedo",0.5f, 0.0f, 0.0f);
+  ngl::ShaderLib::setUniform("ao",1.0f);
+  ngl::ShaderLib::setUniform("camPos",from);
+  ngl::ShaderLib::setUniform("exposure",1.0f);
 
       std::array<ngl::Vec3,4>  lightColors = {{
-          ngl::Vec3(300.0f, 300.0f, 300.0f),
+          ngl::Vec3(1300.0f, 1300.0f, 1300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f)
@@ -105,21 +102,20 @@ void NGLScene::initializeGL()
 
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
-    shader->setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
-    shader->setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),lightColors[i]);
+    ngl::ShaderLib::setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
+    ngl::ShaderLib::setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),lightColors[i]);
   }
-  ( *shader )[ ngl::nglColourShader ]->use();
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::use(ngl::nglColourShader );
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
-  ngl::VAOPrimitives::instance()->createSphere("sphere",0.5,20.0f);
-  ngl::VAOPrimitives::instance()->createTrianglePlane("floor",20,20,10,10,ngl::Vec3::up());
+  ngl::VAOPrimitives::createSphere("sphere",0.5,20.0f);
+  ngl::VAOPrimitives::createTrianglePlane("floor",20,20,10,10,ngl::Vec3::up());
 
 }
 
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
@@ -131,9 +127,9 @@ void NGLScene::loadMatricesToShader()
 
   normalMatrix = MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform( "MVP", MVP );
-  shader->setUniform( "normalMatrix", normalMatrix );
-  shader->setUniform( "M", M );
+  ngl::ShaderLib::setUniform( "MVP", MVP );
+  ngl::ShaderLib::setUniform( "normalMatrix", normalMatrix );
+  ngl::ShaderLib::setUniform( "M", M );
 }
 
 void NGLScene::paintGL()
@@ -142,9 +138,7 @@ void NGLScene::paintGL()
   // clear the screen and depth buffer
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-  // grab an instance of the shader manager
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
-  ( *shader )[ "PBR" ]->use();
+  ngl::ShaderLib::use("PBR");
 
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
@@ -158,59 +152,54 @@ void NGLScene::paintGL()
   m_mouseGlobalTX.m_m[ 3 ][ 0 ] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[ 3 ][ 1 ] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[ 3 ][ 2 ] = m_modelPos.m_z;
-
-  // get the VBO instance and draw the built in teapot
-  ngl::VAOPrimitives* prim = ngl::VAOPrimitives::instance();
-
   // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
   int nrRows    = 7;
   int nrColumns = 7;
   float spacing = 2.0;
 
-  shader->setUniform("albedo",0.5f, 0.0f, 0.0f);
-  shader->setUniform("ao",1.0f);
-  ngl::Random *rng=ngl::Random::instance();
-  rng->setSeed(10);
+  ngl::ShaderLib::setUniform("albedo",0.5f, 0.0f, 0.0f);
+  ngl::ShaderLib::setUniform("ao",1.0f);
+  ngl::Random::setSeed(10);
   for (int row = 0; row < nrRows; ++row)
   {
-      shader->setUniform("metallic", (float)row / (float)nrRows);
+      ngl::ShaderLib::setUniform("metallic", (float)row / (float)nrRows);
       for (int col = 0; col < nrColumns; ++col)
       {
         // we clamp the roughness to 0.025 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
         // on direct lighting.
-        shader->setUniform("roughness", std::min(std::max((float)col / (float)nrColumns, 0.05f), 1.0f));
+        ngl::ShaderLib::setUniform("roughness", std::min(std::max((float)col / (float)nrColumns, 0.05f), 1.0f));
         m_transform.setPosition((float)(col - (nrColumns / 2)) * spacing,
                                 0.0f,
                                 (float)(row - (nrRows / 2)) * spacing);
-        m_transform.setRotation(0.0f,rng->randomPositiveNumber()*360.0f,0.0f);
+        m_transform.setRotation(0.0f,ngl::Random::randomPositiveNumber()*360.0f,0.0f);
 
         loadMatricesToShader();
-        prim->draw("teapot");
+        ngl::VAOPrimitives::draw("teapot");
       }
   }
   // draw floor
-  shader->setUniform("albedo",0.1f, 0.1f, 0.1f);
-  shader->setUniform("ao",1.0f);
-  shader->setUniform("roughness",0.02f);
+  ngl::ShaderLib::setUniform("albedo",0.1f, 0.1f, 0.1f);
+  ngl::ShaderLib::setUniform("ao",1.0f);
+  ngl::ShaderLib::setUniform("roughness",0.02f);
   m_transform.reset();
   m_transform.setPosition(0.0f,-0.5f,0.0f);
   loadMatricesToShader();
-  prim->draw("floor");
+  ngl::VAOPrimitives::draw("floor");
 
 
   // Draw Lights
 
-  ( *shader )[ ngl::nglColourShader ]->use();
+  ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::Mat4 MVP;
   ngl::Transformation tx;
-  shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+  ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
     tx.setPosition(g_lightPositions[i]);
     MVP=m_view*m_project* m_mouseGlobalTX * tx.getMatrix() ;
-    shader->setUniform("MVP",MVP);
-    prim->draw("sphere");
+    ngl::ShaderLib::setUniform("MVP",MVP);
+    ngl::VAOPrimitives::draw("sphere");
   }
 
 }

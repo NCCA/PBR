@@ -29,8 +29,7 @@
     }
     ]
  },
-
-    "TexturePack": {
+  "TexturePack": {
     "material": "greasy",
     "Textures"  : [
       {
@@ -60,7 +59,7 @@
       }
       ]
    },
-    "TexturePack": {
+  "TexturePack": {
     "material": "copper",
     "Textures"  : [
       {
@@ -90,7 +89,7 @@
       }
       ]
     },
-    "TexturePack": {
+  "TexturePack": {
     "material": "rusty",
     "Textures"  : [
       {
@@ -120,8 +119,7 @@
       }
       ]
     },
-
-    "TexturePack": {
+  "TexturePack": {
     "material": "panel",
     "Textures"  : [
       {
@@ -151,11 +149,5 @@
       }
       ]
     }
-
-
-
-
-
-
 }
 
