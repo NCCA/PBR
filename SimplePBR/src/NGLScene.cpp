@@ -94,7 +94,7 @@ void NGLScene::initializeGL()
   ngl::ShaderLib::setUniform("exposure",1.0f);
 
       std::array<ngl::Vec3,4>  lightColors = {{
-          ngl::Vec3(1300.0f, 1300.0f, 1300.0f),
+          ngl::Vec3(300.0f, 300.0f, 300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f),
           ngl::Vec3(300.0f, 300.0f, 300.0f)
