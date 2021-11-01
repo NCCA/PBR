@@ -45,11 +45,11 @@ void NGLScene::wheelEvent( QWheelEvent* _event )
 {
 
   // check the diff of the wheel position (0 means no change)
-  if ( _event->delta() > 0 )
+  if ( _event->angleDelta().x() > 0 )
   {
     m_cam.processMouseScroll(1.0f);
   }
-  else if ( _event->delta() < 0 )
+  else if ( _event->angleDelta().x() < 0 )
   {
     m_cam.processMouseScroll(-1.0f);
   }

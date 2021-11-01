@@ -50,46 +50,43 @@ static std::array<ngl::Vec3,4>  s_lightColors = {{
 
 void NGLScene::initializeGL()
 {
-  // we must call this first before any other GL commands to load and link the
-  // gl commands from the lib, if this is not done program will crash
-  ngl::NGLInit::instance();
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+  ngl::NGLInit::initialize();
   constexpr auto shaderProgram = "PBR";
   constexpr auto vertexShader  = "PBRVertex";
   constexpr auto fragShader    = "PBRFragment";
   // create the shader program
-  shader->createShaderProgram( shaderProgram );
+  ngl::ShaderLib::createShaderProgram( shaderProgram );
   // now we are going to create empty shaders for Frag and Vert
-  shader->attachShader( vertexShader, ngl::ShaderType::VERTEX );
-  shader->attachShader( fragShader, ngl::ShaderType::FRAGMENT );
+  ngl::ShaderLib::attachShader( vertexShader, ngl::ShaderType::VERTEX );
+  ngl::ShaderLib::attachShader( fragShader, ngl::ShaderType::FRAGMENT );
   // attach the source
-  shader->loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
-  shader->loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
+  ngl::ShaderLib::loadShaderSource( vertexShader, "shaders/PBRVertex.glsl" );
+  ngl::ShaderLib::loadShaderSource( fragShader, "shaders/PBRFragment.glsl" );
   // compile the shaders
-  shader->compileShader( vertexShader );
-  shader->compileShader( fragShader );
+  ngl::ShaderLib::compileShader( vertexShader );
+  ngl::ShaderLib::compileShader( fragShader );
   // add them to the program
-  shader->attachShaderToProgram( shaderProgram, vertexShader );
-  shader->attachShaderToProgram( shaderProgram, fragShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, vertexShader );
+  ngl::ShaderLib::attachShaderToProgram( shaderProgram, fragShader );
 
 
   // now we have associated that data we can link the shader
-  shader->linkProgramObject( shaderProgram );
+  ngl::ShaderLib::linkProgramObject( shaderProgram );
   // and make it active ready to load values
-  ( *shader )[ shaderProgram ]->use();
-  shader->setUniform("camPos",m_cam.getEye());
+  ngl::ShaderLib::use( shaderProgram );
+  ngl::ShaderLib::setUniform("camPos",m_cam.getEye());
 
 
   for(size_t i=0; i<g_lightPositions.size(); ++i)
   {
-    shader->setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
-    shader->setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),s_lightColors[i]);
+    ngl::ShaderLib::setUniform(("lightPositions[" + std::to_string(i) + "]").c_str(),g_lightPositions[i]);
+    ngl::ShaderLib::setUniform(("lightColors[" + std::to_string(i) + "]").c_str(),s_lightColors[i]);
   }
-  shader->setUniform("albedoMap", 0);
-  shader->setUniform("normalMap", 1);
-  shader->setUniform("metallicMap", 2);
-  shader->setUniform("roughnessMap", 3);
-  shader->setUniform("aoMap", 4);
+  ngl::ShaderLib::setUniform("albedoMap", 0);
+  ngl::ShaderLib::setUniform("normalMap", 1);
+  ngl::ShaderLib::setUniform("metallicMap", 2);
+  ngl::ShaderLib::setUniform("roughnessMap", 3);
+  ngl::ShaderLib::setUniform("aoMap", 4);
 
 
   glClearColor(0.4f, 0.4f, 0.4f, 1.0f);			   // Grey Background
@@ -141,7 +138,6 @@ void NGLScene::initializeGL()
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
@@ -152,19 +148,18 @@ void NGLScene::loadMatricesToShader()
 
   normalMatrix = MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform( "MVP", MVP );
-  shader->setUniform( "normalMatrix", normalMatrix );
-  shader->setUniform( "M", M );
+  ngl::ShaderLib::setUniform( "MVP", MVP );
+  ngl::ShaderLib::setUniform( "normalMatrix", normalMatrix );
+  ngl::ShaderLib::setUniform( "M", M );
 //  ngl::Vec4 eye=m_cam.getEye();
 //  eye=MV*eye;
-  shader->setUniform("camPos",m_cam.getEye());
+  ngl::ShaderLib::setUniform("camPos",m_cam.getEye());
 
  }
 
 void NGLScene::paintGL()
 {
-  ngl::ShaderLib* shader = ngl::ShaderLib::instance();
-  shader->use("PBR");
+  ngl::ShaderLib::use("PBR");
 
   float currentFrame = m_timer.elapsed()*0.001f;
   std::cout<<"Current Frame "<<currentFrame<<'\n';
@@ -241,10 +236,10 @@ void NGLScene::paintGL()
   // Draw Lights
   if(m_drawLights)
   {
-    ( *shader )[ ngl::nglColourShader ]->use();
+    ngl::ShaderLib::use(ngl::nglColourShader );
     ngl::Mat4 MVP;
     ngl::Transformation tx;
-    shader->setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
+    ngl::ShaderLib::setUniform("Colour",1.0f,1.0f,1.0f,1.0f);
 
     for(size_t i=0; i<g_lightPositions.size(); ++i)
     {
@@ -252,8 +247,8 @@ void NGLScene::paintGL()
       {
         tx.setPosition(g_lightPositions[i]);
         MVP=m_cam.getVP()* m_mouseGlobalTX * tx.getMatrix() ;
-        shader->setUniform("MVP",MVP);
-        ngl::VAOPrimitives::instance()->draw("cube");
+        ngl::ShaderLib::setUniform("MVP",MVP);
+        ngl::VAOPrimitives::draw("cube");
       }
     }
   }
@@ -267,16 +262,15 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 {
   auto setLight=[](std::string _num,size_t _index,bool _mode)
   {
-    ngl::ShaderLib *shader= ngl::ShaderLib::instance();
-    shader->use("PBR");
+    ngl::ShaderLib::use("PBR");
     if(_mode == true)
     {
-      shader->setUniform(_num,s_lightColors[_index]);
+      ngl::ShaderLib::setUniform(_num,s_lightColors[_index]);
     }
     else
     {
       ngl::Vec3 colour={0.0f,0.0f,0.0f};
-      shader->setUniform(_num,colour);
+      ngl::ShaderLib::setUniform(_num,colour);
 
     }
 
