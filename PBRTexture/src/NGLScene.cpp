@@ -151,8 +151,8 @@ void NGLScene::loadMatricesToShader()
   ngl::Real textureRotation=ngl::radians((ngl::Random::randomNumber(180.0f)));
   float cosTheta=cosf(textureRotation);
   float sinTheta=sinf(textureRotation);
-  ngl::Real texRot[4]={cosTheta,sinTheta,-sinTheta,cosTheta};
-  ngl::ShaderLib::setUniformMatrix2fv("textureRotation",&texRot[0]);
+  ngl::Mat2 texRot(cosTheta,sinTheta,-sinTheta,cosTheta);
+  ngl::ShaderLib::setUniform("textureRotation",texRot);
   ngl::ShaderLib::setUniform("camPos",m_cam.getEye());
 
 }
